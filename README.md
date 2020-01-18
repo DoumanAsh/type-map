@@ -1,7 +1,7 @@
-# type-map
+# ttmap (Trivial Type Map)
 
-[![Crates.io](https://img.shields.io/crates/v/type-map.svg)](https://crates.io/crates/type-map)
-[![Documentation](https://docs.rs/type-map/badge.svg)](https://docs.rs/crate/type-map/)
+[![Crates.io](https://img.shields.io/crates/v/ttmap.svg)](https://crates.io/crates/ttmap)
+[![Documentation](https://docs.rs/ttmap/badge.svg)](https://docs.rs/crate/ttmap/)
 [![Build](https://github.com/DoumanAsh/type-map/workflows/Rust/badge.svg)](https://github.com/DoumanAsh/type-map/actions?query=workflow%3ARust)
 
 Trivial type-map implementation

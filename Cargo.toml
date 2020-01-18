@@ -1,5 +1,5 @@
 [package]
-name = "type-map"
+name = "ttmap"
 version = "0.1.0"
 authors = ["Douman <douman@gmx.se>"]
 edition = "2018"
