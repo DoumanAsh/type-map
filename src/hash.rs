@@ -23,10 +23,8 @@ impl core::hash::Hasher for UniqueHasher {
     }
 
     #[inline]
-    fn write(&mut self, bytes: &[u8]) {
-        for byte in bytes {
-            self.add((*byte).into());
-        }
+    fn write(&mut self, _: &[u8]) {
+        panic!("should not be used");
     }
 
     #[inline]
