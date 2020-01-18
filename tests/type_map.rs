@@ -1,4 +1,4 @@
-use type_map::TypeMap;
+use ttmap::TypeMap;
 
 #[test]
 fn check_type_map() {
