@@ -7,6 +7,7 @@ license = "BSL-1.0"
 repository = "https://github.com/DoumanAsh/type-map"
 readme = "README.md"
 description = "Trivial implementation of type map"
+keywords = ["typemap", "hashmap"]
 include = [
     "**/*.rs",
     "Cargo.toml",
