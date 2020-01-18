@@ -42,8 +42,7 @@ pub struct TypeMap {
 
 ///Type's map `Key` trait.
 ///
-///Due to limitations of `TypeId`, safe code allows only to insert static types (i.e. types that
-//doesn't contain non-static lifetimes)
+///Due to limitations of `TypeId`, safe code allows only to insert static types (i.e. types that doesn't contain non-static lifetimes)
 pub trait Key: 'static {}
 //TODO: It should be fairly trivial to replace TypeId with custom impl that allows non-statics, but
 //I doubt it is good idea
