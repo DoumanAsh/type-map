@@ -12,7 +12,8 @@ impl UniqueHasher {
 
     #[inline]
     pub fn add(&mut self, val: u64) {
-        self.result = self.result.wrapping_add(val);
+        debug_assert_eq!(self.result, 0); //One time only
+        self.result = val;
     }
 }
 
