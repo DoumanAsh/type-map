@@ -20,6 +20,24 @@
 //! ## Requirements:
 //!
 //! - `alloc` with enabled global allocator
+//!
+//! ## Usage
+//!
+//! ```rust
+//! use ttmap::TypeMap;
+//!
+//! let mut map = TypeMap::new();
+//!
+//! map.insert("string");
+//!
+//! assert_eq!(*map.get::<&'static str>().unwrap(), "string");
+//!
+//! map.insert(1u8);
+//!
+//! assert_eq!(*map.get::<u8>().unwrap(), 1);
+//!
+//! assert_eq!(map.get_or_default::<String>(), "");
+//! ```
 
 #![warn(missing_docs)]
 #![no_std]
@@ -65,6 +83,12 @@ impl TypeMap {
     }
 
     #[inline]
+    ///Returns number of key & value pairs inside.
+    pub fn capacity(&self) -> usize {
+        self.inner.capacity()
+    }
+
+    #[inline]
     ///Returns whether map is empty
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
@@ -77,8 +101,14 @@ impl TypeMap {
     }
 
     #[inline]
-    ///Returns whether element is present in the mpa.
+    ///Returns whether element is present in the map.
     pub fn has<T: Key>(&self) -> bool {
+        self.inner.contains_key(&TypeId::of::<T>())
+    }
+
+    #[inline]
+    ///Returns whether element is present in the map.
+    pub fn contains_key<T: Key>(&self) -> bool {
         self.inner.contains_key(&TypeId::of::<T>())
     }
 
@@ -119,7 +149,6 @@ impl TypeMap {
         }
     }
 
-
     ///Insert element inside the map, returning old one if any
     ///
     ///## Note
@@ -151,5 +180,19 @@ impl TypeMap {
             let ptr = alloc::boxed::Box::from_raw(ptr.release().as_ptr() as *mut T);
             *ptr
         })
+    }
+}
+
+impl core::default::Default for TypeMap {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl core::fmt::Debug for TypeMap {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        writeln!(f, "TypeMap {{ size={}, capacity={} }}", self.len(), self.capacity())
     }
 }

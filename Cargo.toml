@@ -1,13 +1,13 @@
 [package]
 name = "ttmap"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Douman <douman@gmx.se>"]
 edition = "2018"
 license = "BSL-1.0"
 repository = "https://github.com/DoumanAsh/type-map"
 readme = "README.md"
 description = "Trivial implementation of type map"
-keywords = ["typemap", "hashmap"]
+keywords = ["typemap", "type-map", "hashmap"]
 include = [
     "**/*.rs",
     "Cargo.toml",
