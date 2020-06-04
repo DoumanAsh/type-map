@@ -53,6 +53,12 @@ mod hash;
 
 type HashMap = indexmap::IndexMap<TypeId, Unique<u8, fn (*mut u8)>, hash::UniqueHasherBuilder>;
 
+fn boxed_deleter<T>(ptr: *mut u8) {
+    unsafe {
+        alloc::boxed::Box::from_raw(ptr as *mut T);
+    }
+}
+
 ///Type-safe store, indexed by types.
 pub struct TypeMap {
     inner: HashMap,
@@ -136,7 +142,7 @@ impl TypeMap {
                 &mut *occupied.get_mut().cast::<T>()
             },
             indexmap::map::Entry::Vacant(vacant) => {
-                let deleter: fn (*mut u8) = smart_ptr::boxed_deleter::<T>;
+                let deleter: fn (*mut u8) = boxed_deleter::<T>;
                 let ptr = unsafe {
                     Unique::from_ptr_unchecked(alloc::boxed::Box::into_raw(alloc::boxed::Box::new(T::default())) as *mut u8, deleter)
                 };
@@ -163,7 +169,7 @@ impl TypeMap {
                 Some(value)
             },
             indexmap::map::Entry::Vacant(vacant) => {
-                let deleter: fn (*mut u8) = smart_ptr::boxed_deleter::<T>;
+                let deleter: fn (*mut u8) = boxed_deleter::<T>;
                 let ptr = unsafe {
                     Unique::from_ptr_unchecked(alloc::boxed::Box::into_raw(alloc::boxed::Box::new(value)) as *mut u8, deleter)
                 };
