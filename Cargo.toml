@@ -1,6 +1,6 @@
 [package]
 name = "ttmap"
-version = "0.1.2"
+version = "0.2.0"
 authors = ["Douman <douman@gmx.se>"]
 edition = "2018"
 license = "BSL-1.0"
@@ -13,7 +13,3 @@ include = [
     "Cargo.toml",
     "README.md"
 ]
-
-[dependencies]
-indexmap = "1"
-smart-ptr = { version = "0.4", features = ["alloc"] }
