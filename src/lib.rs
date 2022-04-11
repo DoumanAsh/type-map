@@ -37,7 +37,7 @@ type Value = Box<dyn core::any::Any + Send + Sync>;
 
 #[cold]
 #[inline(never)]
-fn unlikely_vacant_insert<'a>(this: std::collections::hash_map::VacantEntry<'a, Key, Value>, val: Value) -> &'a mut Value {
+fn unlikely_vacant_insert(this: std::collections::hash_map::VacantEntry<'_, Key, Value>, val: Value) -> &'_ mut Value {
     this.insert(val)
 }
 

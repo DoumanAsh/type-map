@@ -45,7 +45,7 @@ impl core::hash::Hasher for UniqueHasher {
 
     #[inline]
     fn write_u64(&mut self, i: u64) {
-        self.add(i.into());
+        self.add(i);
     }
 
     #[inline]
