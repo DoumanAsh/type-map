@@ -32,6 +32,15 @@ use core::any::TypeId;
 
 mod hash;
 
+type Key = TypeId;
+type Value = Box<dyn core::any::Any + Send + Sync>;
+
+#[cold]
+#[inline(never)]
+fn unlikely_vacant_insert<'a>(this: std::collections::hash_map::VacantEntry<'a, Key, Value>, val: Value) -> &'a mut Value {
+    this.insert(val)
+}
+
 #[cfg(not(debug_assertions))]
 macro_rules! unreach {
     () => ({
@@ -48,7 +57,7 @@ macro_rules! unreach {
     })
 }
 
-type HashMap = std::collections::HashMap<TypeId, Box<dyn core::any::Any + Send + Sync>, hash::UniqueHasherBuilder>;
+type HashMap = std::collections::HashMap<Key, Value, hash::UniqueHasherBuilder>;
 
 ///Type-safe store, indexed by types.
 pub struct TypeMap {
@@ -141,7 +150,7 @@ impl TypeMap {
                 }
             },
             Entry::Vacant(vacant) => {
-                let ptr = vacant.insert(Box::new(T::default()));
+                let ptr = unlikely_vacant_insert(vacant, Box::new(T::default()));
                 match ptr.downcast_mut() {
                     Some(res) => res,
                     None => unreach!(),
