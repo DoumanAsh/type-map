@@ -69,6 +69,7 @@ pub trait Type: 'static + Send + Sync {}
 impl<T: 'static + Send + Sync> Type for T {}
 
 ///Boxed dynamically-typed value
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct TypeBox(pub Box<dyn core::any::Any + Send + Sync>);
 
@@ -188,17 +189,15 @@ impl TypeMap {
         }
     }
 
-    ///Insert element inside the map, returning heap-allocated old one if any
+    ///Insert element inside the map via its dynamic type-id,
+    ///returning heap-allocated old one with the same type-id if any
     pub fn insert_box(&mut self, value: TypeBox) -> Option<TypeBox> {
         use std::collections::hash_map::Entry;
 
         match self.inner.entry(value.boxed_type_id()) {
             Entry::Occupied(mut occupied) => {
                 let result = occupied.insert(value.0);
-                match result.downcast() {
-                    Ok(result) => Some(*result),
-                    Err(_) => unreach!()
-                }
+                Some(TypeBox(result))
             },
             Entry::Vacant(vacant) => {
                 vacant.insert(value.0);
@@ -259,6 +258,20 @@ impl TypeBox {
     pub fn boxed_type_id(&self) -> TypeId {
         use core::any::Any;
 
-        (&self.0).type_id()
+        (&*self.0).type_id()
+    }
+}
+
+impl std::ops::Deref for TypeBox {
+    type Target = dyn core::any::Any + Send + Sync;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.0
+    }
+}
+
+impl std::ops::DerefMut for TypeBox {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut *self.0
     }
 }

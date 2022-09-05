@@ -51,11 +51,11 @@ fn check_type_box() {
     assert_eq!(map.len(), 0);
 
     assert!(map.insert("test").is_none());
-    assert_eq!(*map.insert_box(TypeBox::new("lolka")).unwrap(), "test");
+    assert_eq!(*(*map.insert_box(TypeBox::new("lolka")).unwrap()).downcast_ref::<&'static str>().unwrap(), "test");
     assert_eq!(*map.get::<&'static str>().unwrap(), "lolka");
 
     let str_box = map.remove_box(TypeId::of::<&'static str>()).unwrap();
-    assert_eq!(map.remove_box(TypeId::of::<&'static str>()), None);
+    assert!(map.remove_box(TypeId::of::<&'static str>()).is_none());
     assert_eq!(str_box.boxed_type_id(), TypeId::of::<&'static str>());
     let str_box = str_box.into_inner_downcast::<bool>().unwrap_err();
     assert_eq!(str_box.into_inner_downcast::<&'static str>().unwrap(), "lolka");
