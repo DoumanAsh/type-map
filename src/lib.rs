@@ -68,6 +68,10 @@ pub struct TypeMap {
 pub trait Type: 'static + Send + Sync {}
 impl<T: 'static + Send + Sync> Type for T {}
 
+///Boxed dynamically-typed value
+#[repr(transparent)]
+pub struct TypeBox(pub Box<dyn core::any::Any + Send + Sync>);
+
 impl TypeMap {
     #[inline]
     ///Creates new instance
@@ -184,6 +188,25 @@ impl TypeMap {
         }
     }
 
+    ///Insert element inside the map, returning heap-allocated old one if any
+    pub fn insert_box(&mut self, value: TypeBox) -> Option<TypeBox> {
+        use std::collections::hash_map::Entry;
+
+        match self.inner.entry(value.boxed_type_id()) {
+            Entry::Occupied(mut occupied) => {
+                let result = occupied.insert(value.0);
+                match result.downcast() {
+                    Ok(result) => Some(*result),
+                    Err(_) => unreach!()
+                }
+            },
+            Entry::Vacant(vacant) => {
+                vacant.insert(value.0);
+                None
+            }
+        }
+    }
+
     ///Attempts to remove element from the map, returning boxed `Some` if it is present.
     pub fn remove<T: Type>(&mut self) -> Option<Box<T>> {
         self.inner.remove(&TypeId::of::<T>()).map(|ptr| {
@@ -192,6 +215,12 @@ impl TypeMap {
                 Err(_) => unreach!()
             }
         })
+    }
+
+    #[inline]
+    ///Attempts to remove element from the map with the given id, returning `TypeBox` if it is present.
+    pub fn remove_box(&mut self, id: TypeId) -> Option<TypeBox> {
+        self.inner.remove(&id).map(TypeBox)
     }
 }
 
@@ -206,5 +235,30 @@ impl core::fmt::Debug for TypeMap {
     #[inline]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         writeln!(f, "TypeMap {{ size={}, capacity={} }}", self.len(), self.capacity())
+    }
+}
+
+impl TypeBox {
+    /// Allocates and stores the given value on the heap
+    pub fn new<T: Type>(value: T) -> Self {
+        Self(Box::new(value))
+    }
+
+    /// Attempts to downcast to the given type.
+    ///
+    /// If successful, consumes and returns the boxed value.
+    /// If unsuccessful, returns `self` unmodified.
+    pub fn into_inner_downcast<T: Type>(self) -> Result<T, Self> {
+        match self.0.downcast() {
+            Ok(inner) => Ok(*inner),
+            Err(inner) => Err(Self(inner))
+        }
+    }
+
+    /// Gets the type id of the boxed value.
+    pub fn boxed_type_id(&self) -> TypeId {
+        use core::any::Any;
+
+        (&self.0).type_id()
     }
 }
