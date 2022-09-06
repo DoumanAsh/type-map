@@ -256,8 +256,6 @@ impl TypeBox {
 
     /// Gets the type id of the boxed value.
     pub fn boxed_type_id(&self) -> TypeId {
-        use core::any::Any;
-
         (&*self.0).type_id()
     }
 }
