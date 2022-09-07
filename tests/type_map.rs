@@ -1,5 +1,5 @@
 use std::any::TypeId;
-use ttmap::{TypeBox, TypeMap};
+use ttmap::{ValueBox, TypeMap};
 
 #[test]
 fn check_type_map() {
@@ -44,21 +44,32 @@ fn check_type_map() {
 }
 
 #[test]
-fn check_type_box() {
+fn check_raw() {
     let mut map = TypeMap::new();
 
     assert!(map.is_empty());
     assert_eq!(map.len(), 0);
 
     assert!(map.insert("test").is_none());
-    assert_eq!(*(*map.insert_box(TypeBox::new("lolka")).unwrap()).downcast_ref::<&'static str>().unwrap(), "test");
+    assert_eq!(*(*map.insert_raw(Box::new("lolka") as ValueBox).unwrap()).downcast_ref::<&'static str>().unwrap(), "test");
     assert_eq!(*map.get::<&'static str>().unwrap(), "lolka");
+    assert_eq!(*map.get_raw(TypeId::of::<&'static str>()).unwrap().downcast_ref::<&'static str>().unwrap(), "lolka");
+    assert!(map.get::<usize>().is_none());
+    assert!(map.get_raw(TypeId::of::<usize>()).is_none());
 
-    let str_box = map.remove_box(TypeId::of::<&'static str>()).unwrap();
-    assert!(map.remove_box(TypeId::of::<&'static str>()).is_none());
-    assert_eq!(str_box.boxed_type_id(), TypeId::of::<&'static str>());
-    let str_box = str_box.into_inner_downcast::<bool>().unwrap_err();
-    assert_eq!(str_box.into_inner_downcast::<&'static str>().unwrap(), "lolka");
+    *map.get_mut_raw(TypeId::of::<&'static str>()).unwrap().downcast_mut::<&'static str>().unwrap() = "abc";
+    assert_eq!(*map.get::<&'static str>().unwrap(), "abc");
+    assert_eq!(*map.get_raw(TypeId::of::<&'static str>()).unwrap().downcast_ref::<&'static str>().unwrap(), "abc");
+    assert!(map.get::<usize>().is_none());
+    assert!(map.get_raw(TypeId::of::<usize>()).is_none());
+
+    let str_box = map.remove_raw(TypeId::of::<&'static str>()).unwrap();
+    assert!(map.remove_raw(TypeId::of::<&'static str>()).is_none());
+    assert!(map.get::<&'static str>().is_none());
+    assert!(map.get_raw(TypeId::of::<&'static str>()).is_none());
+    assert_eq!(str_box.as_ref().type_id(), TypeId::of::<&'static str>());
+    let str_box = str_box.downcast::<bool>().unwrap_err();
+    assert_eq!(*str_box.downcast::<&'static str>().unwrap(), "abc");
 }
 
 #[test]

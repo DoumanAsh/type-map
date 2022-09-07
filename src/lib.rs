@@ -33,11 +33,10 @@ use core::any::TypeId;
 mod hash;
 
 type Key = TypeId;
-type Value = Box<dyn core::any::Any + Send + Sync>;
 
 #[cold]
 #[inline(never)]
-fn unlikely_vacant_insert(this: std::collections::hash_map::VacantEntry<'_, Key, Value>, val: Value) -> &'_ mut Value {
+fn unlikely_vacant_insert(this: std::collections::hash_map::VacantEntry<'_, Key, ValueBox>, val: ValueBox) -> &'_ mut ValueBox {
     this.insert(val)
 }
 
@@ -57,21 +56,23 @@ macro_rules! unreach {
     })
 }
 
-type HashMap = std::collections::HashMap<Key, Value, hash::UniqueHasherBuilder>;
+type HashMap = std::collections::HashMap<Key, ValueBox, hash::UniqueHasherBuilder>;
 
 ///Type-safe store, indexed by types.
 pub struct TypeMap {
     inner: HashMap,
 }
 
-///Valid type for `TypeMap`
-pub trait Type: 'static + Send + Sync {}
-impl<T: 'static + Send + Sync> Type for T {}
+///Valid type for [TypeMap]
+pub trait Value: 'static + Send + Sync {}
+impl<T: 'static + Send + Sync> Value for T {}
 
-///Boxed dynamically-typed value
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct TypeBox(pub Box<dyn core::any::Any + Send + Sync>);
+///Shared reference to [Value]
+pub type ValueRef<'a> = &'a (dyn core::any::Any + Send + Sync);
+///Mutable reference to [Value]
+pub type ValueMut<'a> = &'a mut (dyn core::any::Any + Send + Sync);
+///Boxed [Value]
+pub type ValueBox = Box<dyn core::any::Any + Send + Sync>;
 
 impl TypeMap {
     #[inline]
@@ -108,19 +109,19 @@ impl TypeMap {
 
     #[inline]
     ///Returns whether element is present in the map.
-    pub fn has<T: Type>(&self) -> bool {
+    pub fn has<T: Value>(&self) -> bool {
         self.inner.contains_key(&TypeId::of::<T>())
     }
 
     #[inline]
     ///Returns whether element is present in the map.
-    pub fn contains_key<T: Type>(&self) -> bool {
+    pub fn contains_key<T: Value>(&self) -> bool {
         self.inner.contains_key(&TypeId::of::<T>())
     }
 
     #[inline]
     ///Access element in the map, returning reference to it, if present
-    pub fn get<T: Type>(&self) -> Option<&T> {
+    pub fn get<T: Value>(&self) -> Option<&T> {
         match self.inner.get(&TypeId::of::<T>()) {
             Some(ptr) => match ptr.downcast_ref() {
                 Some(res) => Some(res),
@@ -131,8 +132,17 @@ impl TypeMap {
     }
 
     #[inline]
+    ///Access element in the map with type-id provided at runtime, returning reference to it, if present
+    pub fn get_raw(&self, k: TypeId) -> Option<ValueRef> {
+        match self.inner.get(&k) {
+            Some(ptr) => Some(ptr.as_ref()),
+            None => None
+        }
+    }
+
+    #[inline]
     ///Access element in the map, returning mutable reference to it, if present
-    pub fn get_mut<T: Type>(&mut self) -> Option<&mut T> {
+    pub fn get_mut<T: Value>(&mut self) -> Option<&mut T> {
         match self.inner.get_mut(&TypeId::of::<T>()) {
             Some(ptr) => match ptr.downcast_mut() {
                 Some(res) => Some(res),
@@ -143,8 +153,17 @@ impl TypeMap {
     }
 
     #[inline]
+    ///Access element in the map with type-id provided at runtime, returning mutable reference to it, if present
+    pub fn get_mut_raw(&mut self, k: TypeId) -> Option<ValueMut> {
+        match self.inner.get_mut(&k) {
+            Some(ptr) => Some(ptr.as_mut()),
+            None => None
+        }
+    }
+
+    #[inline]
     ///Access element in the map, if not present, constructs it using default value.
-    pub fn get_or_default<T: Type + Default>(&mut self) -> &mut T {
+    pub fn get_or_default<T: Value + Default>(&mut self) -> &mut T {
         use std::collections::hash_map::Entry;
 
         match self.inner.entry(TypeId::of::<T>()) {
@@ -171,7 +190,7 @@ impl TypeMap {
     ///Be careful when inserting without explicitly specifying type.
     ///Some special types like function pointers are impossible to infer as non-anonymous type.
     ///You should manually specify type when in doubt.
-    pub fn insert<T: Type>(&mut self, value: T) -> Option<Box<T>> {
+    pub fn insert<T: Value>(&mut self, value: T) -> Option<Box<T>> {
         use std::collections::hash_map::Entry;
 
         match self.inner.entry(TypeId::of::<T>()) {
@@ -189,25 +208,27 @@ impl TypeMap {
         }
     }
 
-    ///Insert element inside the map via its dynamic type-id,
-    ///returning heap-allocated old one with the same type-id if any
-    pub fn insert_box(&mut self, value: TypeBox) -> Option<TypeBox> {
+    ///Insert boxed element inside the map with dynamic type,
+    ///returning heap-allocated old one with the same type-id if any.
+    ///
+    ///This does not reallocate `value`.
+    pub fn insert_raw(&mut self, value: ValueBox) -> Option<ValueBox> {
         use std::collections::hash_map::Entry;
 
-        match self.inner.entry(value.boxed_type_id()) {
+        match self.inner.entry(value.as_ref().type_id()) {
             Entry::Occupied(mut occupied) => {
-                let result = occupied.insert(value.0);
-                Some(TypeBox(result))
+                let result = occupied.insert(value);
+                Some(result)
             },
             Entry::Vacant(vacant) => {
-                vacant.insert(value.0);
+                vacant.insert(value);
                 None
             }
         }
     }
 
     ///Attempts to remove element from the map, returning boxed `Some` if it is present.
-    pub fn remove<T: Type>(&mut self) -> Option<Box<T>> {
+    pub fn remove<T: Value>(&mut self) -> Option<Box<T>> {
         self.inner.remove(&TypeId::of::<T>()).map(|ptr| {
             match ptr.downcast() {
                 Ok(result) => result,
@@ -217,9 +238,9 @@ impl TypeMap {
     }
 
     #[inline]
-    ///Attempts to remove element from the map with the given id, returning `TypeBox` if it is present.
-    pub fn remove_box(&mut self, id: TypeId) -> Option<TypeBox> {
-        self.inner.remove(&id).map(TypeBox)
+    ///Attempts to remove element from the map with type-id provided at runtime, returning boxed `Some` if it is present.
+    pub fn remove_raw(&mut self, id: TypeId) -> Option<ValueBox> {
+        self.inner.remove(&id)
     }
 }
 
@@ -234,42 +255,5 @@ impl core::fmt::Debug for TypeMap {
     #[inline]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         writeln!(f, "TypeMap {{ size={}, capacity={} }}", self.len(), self.capacity())
-    }
-}
-
-impl TypeBox {
-    /// Allocates and stores the given value on the heap
-    pub fn new<T: Type>(value: T) -> Self {
-        Self(Box::new(value))
-    }
-
-    /// Attempts to downcast to the given type.
-    ///
-    /// If successful, consumes and returns the boxed value.
-    /// If unsuccessful, returns `self` unmodified.
-    pub fn into_inner_downcast<T: Type>(self) -> Result<T, Self> {
-        match self.0.downcast() {
-            Ok(inner) => Ok(*inner),
-            Err(inner) => Err(Self(inner))
-        }
-    }
-
-    /// Gets the type id of the boxed value.
-    pub fn boxed_type_id(&self) -> TypeId {
-        (&*self.0).type_id()
-    }
-}
-
-impl std::ops::Deref for TypeBox {
-    type Target = dyn core::any::Any + Send + Sync;
-
-    fn deref(&self) -> &Self::Target {
-        &*self.0
-    }
-}
-
-impl std::ops::DerefMut for TypeBox {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut *self.0
     }
 }
