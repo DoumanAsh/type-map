@@ -1,5 +1,5 @@
 use std::any::TypeId;
-use ttmap::{ValueBox, TypeMap};
+use ttmap::{TypeMap, ValueBox};
 
 #[test]
 fn check_type_map() {
