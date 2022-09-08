@@ -64,14 +64,14 @@ pub struct TypeMap {
 }
 
 ///Valid type for [TypeMap]
-pub trait Value: 'static + Send + Sync {}
-impl<T: 'static + Send + Sync> Value for T {}
+pub trait Type: 'static + Send + Sync {}
+impl<T: 'static + Send + Sync> Type for T {}
 
-///Shared reference to [Value]
+///Shared reference to [Type]
 pub type ValueRef<'a> = &'a (dyn core::any::Any + Send + Sync);
-///Mutable reference to [Value]
+///Mutable reference to [Type]
 pub type ValueMut<'a> = &'a mut (dyn core::any::Any + Send + Sync);
-///Boxed [Value]
+///Boxed [Type]
 pub type ValueBox = Box<dyn core::any::Any + Send + Sync>;
 
 impl TypeMap {
@@ -109,19 +109,19 @@ impl TypeMap {
 
     #[inline]
     ///Returns whether element is present in the map.
-    pub fn has<T: Value>(&self) -> bool {
+    pub fn has<T: Type>(&self) -> bool {
         self.inner.contains_key(&TypeId::of::<T>())
     }
 
     #[inline]
     ///Returns whether element is present in the map.
-    pub fn contains_key<T: Value>(&self) -> bool {
+    pub fn contains_key<T: Type>(&self) -> bool {
         self.inner.contains_key(&TypeId::of::<T>())
     }
 
     #[inline]
     ///Access element in the map, returning reference to it, if present
-    pub fn get<T: Value>(&self) -> Option<&T> {
+    pub fn get<T: Type>(&self) -> Option<&T> {
         match self.inner.get(&TypeId::of::<T>()) {
             Some(ptr) => match ptr.downcast_ref() {
                 Some(res) => Some(res),
@@ -142,7 +142,7 @@ impl TypeMap {
 
     #[inline]
     ///Access element in the map, returning mutable reference to it, if present
-    pub fn get_mut<T: Value>(&mut self) -> Option<&mut T> {
+    pub fn get_mut<T: Type>(&mut self) -> Option<&mut T> {
         match self.inner.get_mut(&TypeId::of::<T>()) {
             Some(ptr) => match ptr.downcast_mut() {
                 Some(res) => Some(res),
@@ -163,7 +163,7 @@ impl TypeMap {
 
     #[inline]
     ///Access element in the map, if not present, constructs it using default value.
-    pub fn get_or_default<T: Value + Default>(&mut self) -> &mut T {
+    pub fn get_or_default<T: Type + Default>(&mut self) -> &mut T {
         use std::collections::hash_map::Entry;
 
         match self.inner.entry(TypeId::of::<T>()) {
@@ -190,7 +190,7 @@ impl TypeMap {
     ///Be careful when inserting without explicitly specifying type.
     ///Some special types like function pointers are impossible to infer as non-anonymous type.
     ///You should manually specify type when in doubt.
-    pub fn insert<T: Value>(&mut self, value: T) -> Option<Box<T>> {
+    pub fn insert<T: Type>(&mut self, value: T) -> Option<Box<T>> {
         use std::collections::hash_map::Entry;
 
         match self.inner.entry(TypeId::of::<T>()) {
@@ -228,7 +228,7 @@ impl TypeMap {
     }
 
     ///Attempts to remove element from the map, returning boxed `Some` if it is present.
-    pub fn remove<T: Value>(&mut self) -> Option<Box<T>> {
+    pub fn remove<T: Type>(&mut self) -> Option<Box<T>> {
         self.inner.remove(&TypeId::of::<T>()).map(|ptr| {
             match ptr.downcast() {
                 Ok(result) => result,
