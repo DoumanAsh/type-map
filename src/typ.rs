@@ -1,6 +1,6 @@
 use core::any::TypeId;
 
-///Valid type for [TypeMap]
+///Valid type allowed as key of type map
 pub trait Type: 'static + Send + Sync {
     #[doc(hidden)]
     #[inline(always)]
