@@ -22,7 +22,3 @@ It might be changed in future.
 
 The map uses simplified `Hasher` that relies on fact that `TypeId` produces unique values only.
 In fact there is no hashing under hood, and type's id is returned as it is.
-
-## Requirements:
-
-- `alloc` with enabled global allocator
