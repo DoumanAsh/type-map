@@ -26,6 +26,7 @@
 //! ```
 
 #![warn(missing_docs)]
+#![allow(private_interfaces)]
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::style))]
 
 #[cfg(not(debug_assertions))]
@@ -45,7 +46,7 @@ macro_rules! unreach {
 }
 
 mod typ;
-pub use typ::Type;
+pub use typ::{Type, RawType};
 mod value;
 pub use value::Value;
 mod hash;
@@ -115,25 +116,25 @@ impl TypeMap {
     #[inline]
     ///Access element in the map, returning reference to it, if present
     pub fn get<T: Type>(&self) -> Option<&T> {
-        self.get_raw::<T>().map(Value::downcast_ref)
+        self.inner.get(&T::id()).map(|raw| Value::<T>::new_inner_ref(raw).downcast_ref())
     }
 
     #[inline]
     ///Access element in the map, returning reference to it, if present
-    pub fn get_raw<T: Type>(&self) -> Option<&Value<T>> {
-        self.inner.get(&T::id()).map(Value::new_inner_ref)
+    pub fn get_raw(&self, id: &Key) -> Option<&Value<RawType>> {
+        self.inner.get(id).map(Value::new_inner_ref)
     }
 
     #[inline]
     ///Access element in the map, returning mutable reference to it, if present
     pub fn get_mut<T: Type>(&mut self) -> Option<&mut T> {
-        self.get_mut_raw::<T>().map(Value::downcast_mut)
+        self.inner.get_mut(&T::id()).map(|raw| Value::<T>::new_inner_mut(raw).downcast_mut())
     }
 
     #[inline]
     ///Access element in the map, returning mutable reference to it, if present
-    pub fn get_mut_raw<T: Type>(&mut self) -> Option<&mut Value<T>> {
-        self.inner.get_mut(&T::id()).map(Value::new_inner_mut)
+    pub fn get_mut_raw(&mut self, id: &Key) -> Option<&mut Value<RawType>> {
+        self.inner.get_mut(id).map(Value::new_inner_mut)
     }
 
     #[inline]
@@ -189,8 +190,8 @@ impl TypeMap {
 
     #[inline]
     ///Attempts to remove element from the map, returning boxed `Some` if it is present.
-    pub fn remove_raw<T: Type>(&mut self) -> Option<Value<T>> {
-        self.inner.remove(&T::id()).map(Value::new_inner)
+    pub fn remove_raw(&mut self, id: &Key) -> Option<Value<RawType>> {
+        self.inner.remove(id).map(Value::new_inner)
     }
 
     #[inline]

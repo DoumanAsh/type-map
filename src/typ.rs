@@ -11,3 +11,6 @@ pub trait Type: 'static + Send + Sync {
 }
 
 impl<T: 'static + Send + Sync> Type for T {}
+
+///Tag to indicate Raw boxed value
+pub struct RawType;

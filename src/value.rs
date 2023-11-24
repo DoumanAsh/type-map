@@ -1,4 +1,5 @@
-use crate::{Type, ValueBox};
+use crate::typ::{Type, RawType};
+use crate::ValueBox;
 
 use core::marker::PhantomData;
 
@@ -7,6 +8,29 @@ use core::marker::PhantomData;
 pub struct Value<T> {
     inner: ValueBox,
     _typ: PhantomData<T>
+}
+
+impl Value<RawType> {
+    #[inline]
+    ///Attempts downcast self into specified type
+    pub fn try_downcast<O: Type>(self) -> Result<Box<O>, Self> {
+        match self.inner.downcast() {
+            Ok(res) => Ok(res),
+            Err(inner) => Err(Self::new_inner(inner)),
+        }
+    }
+
+    #[inline]
+    ///Attempts to downcast self into concrete type
+    pub fn try_downcast_ref<O: Type>(&self) -> Option<&O> {
+        self.inner.downcast_ref()
+    }
+
+    #[inline]
+    ///Attempts to downcast self into concrete type
+    pub fn try_downcast_mut<O: Type>(&mut self) -> Option<&mut O> {
+        self.inner.downcast_mut()
+    }
 }
 
 impl<T: Type> Value<T> {
@@ -47,15 +71,26 @@ impl<T: Type> Value<T> {
     #[inline]
     ///Downcasts self into concrete type
     pub fn downcast(self) -> Box<T> {
+        //dum dum no specialization
+        if T::id() == RawType::id() {
+            panic!("Raw box cannot use this method")
+        }
+
         match self.inner.downcast() {
             Ok(res) => res,
             Err(_) => unreach!(),
         }
     }
 
+
     #[inline]
     ///Downcasts self into concrete type
     pub fn downcast_ref(&self) -> &T {
+        //dum dum no specialization
+        if T::id() == RawType::id() {
+            panic!("Raw box cannot use this method")
+        }
+
         match self.inner.downcast_ref() {
             Some(res) => res,
             None => unreach!(),
@@ -65,6 +100,11 @@ impl<T: Type> Value<T> {
     #[inline]
     ///Downcasts self into concrete type
     pub fn downcast_mut(&mut self) -> &mut T {
+        //dum dum no specialization
+        if T::id() == RawType::id() {
+            panic!("Raw box cannot use this method")
+        }
+
         match self.inner.downcast_mut() {
             Some(res) => res,
             None => unreach!(),
